@@ -20,12 +20,19 @@ font = pygame.font.SysFont('Arial', 20)
 
 
 class CustomGraph:
+
+    # CustomGraph Class
+    # Graph class that stores and manages all aspects of the graph as well as methods
+
     def __init__(self):
+        # Neighbors maps a node number to a list of its neighbors
         self.neighbors = {}
+        # Circles maps a node number to its Circle object
         self.circles = {}
         self.count = 0
         self.result = ''
         self.state = 'place'
+        self.textBox = ''
         self.marked_circle = None
         self.target = None
 
@@ -33,6 +40,8 @@ class CustomGraph:
         return self.neighbors[node]
 
     def add_neighbor(self, node, neighbor):
+        # Given two nodes, adds both nodes as eachothers neighbors if not already set
+
         if neighbor not in self.neighbors[node]:
             self.neighbors[node] += [neighbor]
             self.neighbors[neighbor] += [node]
@@ -59,6 +68,8 @@ class CustomGraph:
         self.circles[node].set_color(color)
 
     def reset(self):
+        # reset method resets all circle marks and neighbors that are set
+
         for circle in self.circles.values():
             circle.set_color(GREEN)
         for k in range(1, len(self.neighbors)+1):
@@ -67,6 +78,8 @@ class CustomGraph:
         self.target = None
 
     def restart(self):
+        # restart method removes all circles from the graph
+        
         self.circles.clear()
         self.neighbors.clear()
         self.count = 0
@@ -101,6 +114,11 @@ class CustomGraph:
             circle.set_color(GREEN)
 
 class Circle:
+
+    # Circle Class
+    # Class contains a circles number, its pygame rect object, and its color
+    # Class methods are getters and setters for these attributes
+
     def __init__(self, num, rect, color):
         self.num = num
         self.rect = rect
@@ -119,159 +137,271 @@ class Circle:
         self.color = new
 
 
-c = CustomGraph()
+# Create graph object
+currentGraph = CustomGraph()
 
 
 def visit(node, target=None):
-    i, d = node
-    print('Visited node ' + str(i))
-    c.mark(i, RED)
+    # visit() function
+    # When a node is visited, mark it red. If it is the target, update the graph result.
+
+    index, dist = node
+    print('Visited node ' + str(index))
+    currentGraph.mark(index, RED)
     pygame.time.wait(150)
-    pygame.draw.ellipse(WIN, c.get_circle_color(i), c.get_circle(i))
-    if i == target:
-        c.change_result('Shortest path to node ' + str(i) + ' is distance ' + str(d))
+    pygame.draw.ellipse(WIN, currentGraph.get_circle_color(index), currentGraph.get_circle(index))
+    if index == target:
+        currentGraph.change_result('Shortest path to node ' + str(index) + ' is distance ' + str(dist))
         return True
     pygame.display.update()
 
 
 def BFS_ShortestPath(origin, target):
-    c.reset_colors()
+    # BFS_SortestPath() Algorithm
+    # Breadth-First-Search algorithm capable of finding the shortest path to a target node
+
+    # Reset graph appearance when function called
+    currentGraph.reset_colors()
     pygame.display.update()
-    if c.get_count() == 0:
+
+    # If empty graph, return
+    if currentGraph.get_count() == 0:
         return
-    visited = [False] * c.get_count()
-    previous = [None] * c.get_count()
+
+    # Initialize visited array as well as "previous" array to store the node previously used to reach a certain node
+    visited = [False] * currentGraph.get_count()
+    previous = [None] * currentGraph.get_count()
+
+    # ans array will store the nodes used to reach target node once we backtrack
     ans = []
+
     stack = [origin]
     while stack:
-        i, d = stack.pop(0)
-        if visit((i, d), target):
+
+        # Popping from index 0 is what allows this algorithm to perform BFS rather than DFS
+        index, dist = stack.pop(0)
+
+        # If node visited is the target, run backtracking algorithm to display shortest path
+        if visit((index, dist), target):
             while True:
-                ans.append(i)
-                if not previous[i-1]:
+
+                # target node is part of the shortest path
+                ans.append(index)
+
+                # Check if node has a previous node stored. If not, break from while loop.
+                if not previous[index-1]:
                     print(ans)
                     break
+
+                # If node has a previous node stored, change current node index to the previous
                 else:
-                    i = previous[i-1]
-            for k in ans:
-                c.mark(k, BLUE)
+                    index = previous[index-1]
+
+            # For node stored in ans, mark with blue to show it is part of shortest path
+            for node in ans:
+                currentGraph.mark(node, BLUE)
             break
-        visited[i - 1] = True
-        n = c.get_neighbors(i)
-        for j in n:
-            if not visited[j-1]:
-                stack.append((j, d+1))
-                if not previous[j-1]:
-                    previous[j-1] = i
-    if not c.get_result():
-        c.change_result('Search Complete.')
+
+        # Mark current node as visited
+        visited[index - 1] = True
+
+        # Get node neighbors, check if they have been visited. If not, append them to stack.
+        neighbors = currentGraph.get_neighbors(index)
+        for n in neighbors:
+            if not visited[n-1]:
+                stack.append((n, dist+1))
+
+                # Mark neigbor's previous node as current node
+                if not previous[n-1]:
+                    previous[n-1] = index
+
+    if not currentGraph.get_result():
+        currentGraph.change_result('Search Complete.')
 
 def DFS(origin, target):
-    c.reset_colors()
+    # DFS() function
+    # Depth-First-Search function implemented on the customGraph
+    # Searches for a specified target node from origin node
+
+    # Reset graph appearance at start of algorithm run
+    currentGraph.reset_colors()
     pygame.display.update()
+
+    # Initialize node found to be false until proven otherwise
     found = False
-    if c.get_count() == 0:
+
+    # If graph empty, return
+    if currentGraph.get_count() == 0:
         return
-    visited = [False] * c.get_count()
+
+    # Initialize visited array of size count to keep track of which nodes have been visited
+    visited = [False] * currentGraph.get_count()
+
+    # Initialize stack implementation of DFS. Stack starts with just the origin in it.
     stack = [origin]
+
+    # While stack = while nodes need to be explored
     while stack:
-        i, d = stack.pop()
-        if visit((i, d), target):
+
+        # Pop from top of stack
+        index, dist = stack.pop()
+
+        # Visit function performs operations and returns if a node is the target. If returned true, found is true.
+        if visit((index, dist), target):
             found = True
-        visited[i - 1] = True
-        n = c.get_neighbors(i)
-        for j in n:
-            if not visited[j-1]:
-                stack.append((j, d+1))
+
+        # Mark node as visited
+        visited[index - 1] = True
+
+        # For neighbors of current index, if not visited, append to the stack.
+        neigbors = currentGraph.get_neighbors(index)
+        for n in neigbors:
+            if not visited[n-1]:
+                stack.append((n, dist+1))
+
+    # Print result whether target node was found or not
     if found:
-        c.change_result(f'Depth-First Search Complete. Target node {target} reachable from origin.')
+        currentGraph.change_result(f'Depth-First Search Complete. Target node {target} reachable from origin.')
     else:
-        c.change_result('Depth-First Search Complete.')
+        currentGraph.change_result('Depth-First Search Complete.')
 
 
 def generate_random_neighbors():
-    j = c.get_count()
-    for k in range(1, j+1):
-        t = random.randrange(1, j+1)
-        while t == k:
-            t = random.randrange(1, j+1)
-        c.add_neighbor(k, t)
+    # generate_random_neighbors() function
+    # Assigns each circle a random neighbor from the existing circles in the graph
+
+    count = currentGraph.get_count()
+    for num in range(1, count+1):
+        t = random.randrange(1, count+1)
+        while t == num:
+            t = random.randrange(1, count+1)
+        currentGraph.add_neighbor(num, t)
 
 
 def update_lines():
-    for i in range(1, c.count+1):
-        x, y = c.get_circle(i).centerx, c.get_circle(i).centery
-        for j in c.get_neighbors(i):
-            a, b = c.get_circle(j).centerx, c.get_circle(j).centery
+    # update_lines() function
+    # Checks for any neighbors of circles in the graph
+    # Draws a line from circle.centerx to neighbor.centerx
+
+    for i in range(1, currentGraph.count+1):
+        x, y = currentGraph.get_circle(i).centerx, currentGraph.get_circle(i).centery
+        for j in currentGraph.get_neighbors(i):
+            a, b = currentGraph.get_circle(j).centerx, currentGraph.get_circle(j).centery
             pygame.draw.line(WIN, BLACK, (x, y), (a, b), 4)
 
 
+# Initializing all buttons as pygame Rect objects
 button = pygame.Rect(900, 600, 150, 40)
 restartButton = pygame.Rect(960, 50, 120, 50)
 resetButton = pygame.Rect(930, 120, 150, 50)
 BFSsearchButton = pygame.Rect(905, 200, 175, 50)
 DFSsearchButton = pygame.Rect(930, 290, 150, 50)
+randomNeighborsButton = pygame.Rect(905, 380, 175, 60)
 
 def draw_window():
+    # draw_window() function
+    # Displays all objects on screen of program
+
+
     WIN.fill(WHITE)
-    for i in range(1, c.get_count()+1):
-        pygame.draw.ellipse(WIN, c.get_circle_color(i), c.get_circle(i))
-        WIN.blit(font.render(str(i), True, BLACK), (c.get_circle(i).centerx-7, c.get_circle(i).centery-12))
-    WIN.blit(font.render(c.get_result(), True, BLACK), (50, 50))
+
+    # Display all circles on graph as pygame ellipses
+    for i in range(1, currentGraph.get_count()+1):
+        pygame.draw.ellipse(WIN, currentGraph.get_circle_color(i), currentGraph.get_circle(i))
+        WIN.blit(font.render(str(i), True, BLACK), (currentGraph.get_circle(i).centerx-7, currentGraph.get_circle(i).centery-12))
+
+    # Display all text and buttons on the screen
+    WIN.blit(font.render(currentGraph.get_result(), True, BLACK), (50, 50))
     pygame.draw.rect(WIN, GREEN, restartButton)
     pygame.draw.rect(WIN, GREEN, resetButton)
-    WIN.blit(font.render('Remove All', True, BLACK), (970, 60))
-    WIN.blit(font.render('Set Target Node:', True, BLACK), (890, 560))
-    WIN.blit(font.render('Reset Nodes', True, BLACK), (950, 130))
-    WIN.blit(font.render(f'Target Node: {c.get_target()}', True, BLACK), (930, 260))
-    if c.get_state() == 'type':
+    pygame.draw.rect(WIN, GREEN, BFSsearchButton)
+    pygame.draw.rect(WIN, GREEN, DFSsearchButton)
+    pygame.draw.rect(WIN, GREEN, randomNeighborsButton)
+
+    if currentGraph.get_state() == 'type':
         pygame.draw.rect(WIN, (210, 210, 210), button)
     else:
         pygame.draw.rect(WIN, (130, 130, 130), button)
-    pygame.draw.rect(WIN, GREEN, BFSsearchButton)
-    pygame.draw.rect(WIN, GREEN, DFSsearchButton)
+
+    WIN.blit(font.render('Remove All', True, BLACK), (970, 60))
+    WIN.blit(font.render('Set Target Node:', True, BLACK), (890, 560))
+    WIN.blit(font.render('Reset Nodes', True, BLACK), (950, 130))
+    WIN.blit(font.render(f'Target Node: {currentGraph.get_target()}', True, BLACK), (930, 260))
     WIN.blit(font.render('BFS Shortest Path', True, BLACK), (910, 210))
     WIN.blit(font.render('DFS Search', True, BLACK), (935, 300))
-    WIN.blit(font.render(textBox, True, BLACK), (920, 610))
+    WIN.blit(font.render('Generate Random', True, BLACK), (910, 390))
+    WIN.blit(font.render('Neighbors', True, BLACK), (940, 410))
+    WIN.blit(font.render(currentGraph.textBox, True, BLACK), (920, 610))
+
+    # update_lines() function handles displaying all lines for neighbors on the graph
     update_lines()
     pygame.display.update()
 
 
-textBox = ''
 
 def check_click(x, y):
-    g = True
-    for i in range(1, c.count+1):
-        circle = c.get_circle(i)
+    # check_click()
+    # This function handles all seperate cases of mouse clicks
+
+    # We assume a click on the screen will add a circle until proven otherwise
+    add_circle = True
+
+    # Iterate through all circles on the graph
+    for i in range(1, currentGraph.count+1):
+        circle = currentGraph.get_circle(i)
         x1, y1 = circle.centerx, circle.centery
+
+        # Check if click is within the area of the circle
         if math.sqrt((x1-x)**2 + (y1-y)**2) <= 22.5:
-            res = c.get_marked_circle()
+            res = currentGraph.get_marked_circle()
+
+            # If another circle has already been 'marked', or chosen to add a neighbor, then add its neighor as the newly clicked circle
+            # Else, make the newly clicked circle the new 'marked' circle
             if res:
-                c.add_neighbor(i, res)
+                currentGraph.add_neighbor(i, res)
             else:
-                c.set_marked_circle(i)
-            g = False
+                currentGraph.set_marked_circle(i)
+            add_circle = False
+
+    # If text box is clicked, set program in typing state, else exit typing state
     if ((900 < x < 1050) and (600 < y < 640)):
-        if c.get_state() != 'type':
-            c.set_state('type')
+        if currentGraph.get_state() != 'type':
+            currentGraph.set_state('type')
         else:
-            c.set_state('place')
+            currentGraph.set_state('place')
+
+    # If reset button is clicked, reset
     elif ((930 < x < 1080) and (120 < y < 170)):
-        c.reset()
+        currentGraph.reset()
+
+    # If restart button is clicked, restart
     elif ((960 < x < 1080) and (50 < y < 100)):
-        c.restart()
+        currentGraph.restart()
+
+    # Perform BFS shortest path if BFS button is clicked
     elif ((905 < x < 1080) and (200 < y < 250)):
-        BFS_ShortestPath((1, 0), c.get_target())
+        BFS_ShortestPath((1, 0), currentGraph.get_target())
+
+    # Perform DFS if DFS button is clicked
     elif ((930 < x < 1080) and (290 < y < 340)):
-        DFS((1, 0), c.get_target())
+        DFS((1, 0), currentGraph.get_target())
+
+    # If random neighbors button is clicked, generate random neighbors
+    elif ((905 < x < 1080) and (380 < y < 440)):
+        generate_random_neighbors()
+    # Only other case is the user wants to add a circle. Add circle
     else:
-        if g == True:
-            c.add_circle(x, y)
+        if add_circle == True:
+            currentGraph.add_circle(x, y)
 
 
 
 def game_loop():
-    global textBox
+    # game_loop() function
+    # This function contains the game loop "while run: ..."
+    # This loop keeps the program running while checking for events
+    # Events checked for are mouse clicks, key presses, and window closes
+
     run = True
     while run:
         for event in pygame.event.get():
@@ -282,15 +412,13 @@ def game_loop():
                 x, y = pygame.mouse.get_pos()
                 check_click(x, y)
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    generate_random_neighbors()
-                elif c.get_state() == 'type':
+                if currentGraph.get_state() == 'type':
                     if event.key == pygame.K_RETURN:
-                        c.set_target(int(textBox))
-                        textBox = ''
-                        c.set_state('place')
+                        currentGraph.set_target(int(currentGraph.textBox))
+                        currentGraph.textBox = ''
+                        currentGraph.set_state('place')
                     else:
-                        textBox += event.unicode
+                        currentGraph.textBox += event.unicode
 
         draw_window()
     pygame.quit()
